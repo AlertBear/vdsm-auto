@@ -83,7 +83,7 @@ class RhevmAction:
             raise RuntimeError(
                 "Failed to add new data center")
 
-    def remove_datacenter(self, dc_name, force=True):
+    def remove_datacenter(self, dc_name, force=False):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn,
             item="datacenters")
