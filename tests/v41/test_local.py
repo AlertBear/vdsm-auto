@@ -43,21 +43,37 @@ def test_18113():
 
     # Create datacenter
     print "Creating new datacenter..."
-    rhvm.create_datacenter(dc_name, is_local=True)
+    try:
+        rhvm.create_datacenter(dc_name, is_local=True)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to create datacenter"
     time.sleep(10)
 
     # Create cluster
     print "Creating new cluster..."
     cpu_type = get_cpu_type(host_ip, host_pass)
-    rhvm.create_cluster(dc_name, cluster_name, cpu_type)
+    try:
+        rhvm.create_cluster(dc_name, cluster_name, cpu_type)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to create new cluster"
+    time.sleep(5)
 
     # Create new host to above cluster
     print "Adding new host..."
-    rhvm.create_new_host(
-        host_ip, host_name, host_pass, cluster_name=cluster_name)
+    try:
+        rhvm.create_new_host(
+            host_ip, host_name, host_pass, cluster_name=cluster_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to add new host"
+    time.sleep(15)
 
     # Wait host is up
-    time.sleep(15)
     i = 0
     while True:
         if i > 60:
@@ -71,14 +87,30 @@ def test_18113():
 
     # Remove host from above cluster
     print "Removing the host..."
-    rhvm.remove_host(host_name)
+    try:
+        rhvm.remove_host(host_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to remove host from cluster"
     time.sleep(30)
 
     # Force remove datacenter and cluster
     print "Removing the cluster..."
-    rhvm.remove_cluster(cluster_name)
+    try:
+        rhvm.remove_cluster(cluster_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to remove cluster"
+
     print "Removing the datacenter..."
-    rhvm.remove_datacenter(dc_name)
+    try:
+        rhvm.remove_datacenter(dc_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to remove datacenter"
 
 
 def test_18114():
@@ -86,28 +118,43 @@ def test_18114():
 
     # Create new datacenter
     print "Creating new datacenter..."
-    rhvm.create_datacenter(dc_name, is_local=True)
+    try:
+        rhvm.create_datacenter(dc_name, is_local=True)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to create new datacenter"
     time.sleep(10)
 
     # Create new cluster
     print "Creating new cluster..."
     cpu_type = get_cpu_type(host_ip, host_pass)
-    rhvm.create_cluster(dc_name, cluster_name, cpu_type)
+    try:
+        rhvm.create_cluster(dc_name, cluster_name, cpu_type)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to create new cluster"
+    time.sleep(5)
 
     # Add new host to above cluster
     print "Adding new host..."
-    rhvm.create_new_host(
-        host_ip, host_name, host_pass, cluster_name=cluster_name)
+    try:
+        rhvm.create_new_host(
+            host_ip, host_name, host_pass, cluster_name=cluster_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to add new host to cluster"
+    time.sleep(15)
 
     # Wait host is up
-    time.sleep(15)
     i = 0
     while True:
-        print i
         if i > 60:
             assert 0, "Failed to add host %s to %s" % (host_name, dc_name)
         host_status = rhvm.list_host(host_name)['status']
-        print host_status
+        print "HOST: %s" % host_status
         if host_status == 'up':
             break
         time.sleep(10)
@@ -144,37 +191,64 @@ def test_18114():
             storage_domain_name, dc_name)
     time.sleep(60)
 
-    # Create disk for vm over local storage domain
-    print "Creating new disk for vm to use..."
-    vm_disk = "vdsm_local_disk"
+    # Create virtual machine
+    print "Creating new virtual machine..."
+    vm_name = "vdsm_local_vm"
     try:
-        rhvm.create_image_disk(storage_domain_name, vm_disk, '50000')
+        rhvm.create_vm(vm_name=vm_name, cluster=cluster_name)
     except Exception as e:
         print e
         print traceback.print_exc()
-        assert 0, "Failed to create disk from storage domain %s" % storage_domain_name
-    time.sleep(15)
-
-    # Create vm and attach disk to this vm
-    print "Creating new virtual machine..."
-    vm_name = "vdsm_local_vm"
-    rhvm.create_vm(vm_name=vm_name, cluster=cluster_name)
+        assert 0, "Failed to create new vm"
     time.sleep(30)
 
-    # Attach new disk to above vm
-    print "Attaching new disk to the virtual machine..."
-    rhvm.attach_disk_to_vm(disk_name=vm_disk, vm_name=vm_name)
+    # Create new disk attachment to above vm
+    print "Creating new disk attachment to the virtual machine..."
+    disk_name = "vdsm_local_disk"
+    try:
+        rhvm.create_vm_disk_attachment(
+            vm_name=vm_name,
+            sd_name=storage_domain_name,
+            disk_name=disk_name,
+            disk_size="30589934592")
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to create disk attachement to the VM"
     time.sleep(30)
 
     # Maintenance host
     print "Maintenance the host..."
-    host_id = rhvm.list_host(host_name)
-    rhvm.deactive_host(host_id)
+    try:
+        rhvm.deactive_host(host_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to maintenance the host"
+    time.sleep(30)
 
     # Force remove datacenter and cluster
     print "Force removing the datacenter..."
-    rhvm.remove_datacenter(dc_name)
+    try:
+        rhvm.remove_datacenter(dc_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to force remove the datacenter"
+    time.sleep(5)
+
     print "Removing the host..."
-    rhvm.remove_host(host_name)
+    try:
+        rhvm.remove_host(host_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to remove the host from cluster"
+    time.sleep(5)
     print "Remove the cluster..."
-    rhvm.remove_cluster(cluster_name)
+    try:
+        rhvm.remove_cluster(cluster_name)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to remove the cluster"

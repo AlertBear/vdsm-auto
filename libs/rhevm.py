@@ -229,9 +229,10 @@ class RhevmAction:
             raise RuntimeError(
                 "Failed to add new host, may be host already imported")
 
-    def deactive_host(self, host_id):
+    def deactive_host(self, host_name):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item='hosts')
+        host_id = self.list_host(host_name)['id']
         api_url = api_url_base + "/%s/deactivate" % host_id
         # print api_url
         r = self.req.post(
@@ -246,20 +247,21 @@ class RhevmAction:
     def remove_host(self, host_name):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="hosts")
+
+        host_status = self.list_host(host_name)['status']
+        if host_status == 'up':
+            self.deactive_host(host_name)
+
         host_id = self.list_host(host_name)['id']
+        time.sleep(5)
+        api_url = api_url_base + '/%s' % host_id
 
-        if host_id:
-            self.deactive_host(host_id)
-            time.sleep(5)
-            api_url = api_url_base + '/%s' % host_id
+        r = self.req.delete(
+            api_url, headers=self.headers, verify=self.rhevm_cert)
 
-            r = self.req.delete(
-                api_url, headers=self.headers, verify=self.rhevm_cert)
-            if r.status_code != 200:
-                print r.text
-                raise RuntimeError("Can not delete host %s" % host_name)
-        else:
-            print "Can't find host with name %s" % host_name
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Can not delete host %s" % host_name)
 
     def list_host(self, host_name):
         api_url = self.api_url.format(
@@ -409,7 +411,7 @@ class RhevmAction:
 
         r = self.req.post(
             api_url, data=body, headers=self.headers, verify=self.rhevm_cert)
-        print r.status_code
+
         if r.status_code != 201:
             print r.text
             raise RuntimeError("Failed to attach storage %s to datacenter %s" %
@@ -533,7 +535,7 @@ class RhevmAction:
             headers=self.headers,
             verify=self.rhevm_cert)
 
-        if r.status_code != 202:
+        if r.status_code != 201:
             print r.text
             raise RuntimeError("Failed to attach disk %s to VM %s" % (
                 disk_name, vm_name))
@@ -566,7 +568,7 @@ class RhevmAction:
             headers=self.headers,
             verify=self.rhevm_cert)
 
-        if r.status_code != 202:
+        if r.status_code != 201:
             print r.text
             raise RuntimeError("Failed to create viratual machine")
         else:
@@ -593,9 +595,11 @@ class RhevmAction:
         else:
             return
 
-    def start_vm(self, vm_id):
+    def start_vm(self, vm_name):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="vms")
+
+        vm_id = self.list_vm(vm_name)['id']
         api_url = api_url_base + '/%s/start' % vm_id
 
         vm_action = '''
@@ -617,11 +621,92 @@ class RhevmAction:
             headers=self.headers,
             verify=self.rhevm_cert)
 
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Failed to start vm %s" % vm_name)
+
+    def operate_vm(self, vm_name, operation):
+        normal_operations = ['start', 'reboot', 'shutdown', 'stop', 'suspend']
+        if operation not in normal_operations:
+            raise RuntimeError("Only support operations ['reboot', 'shutdown', 'stop', 'suspend']")
+
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="vms")
+
+        vm_id = self.list_vm(vm_name)['id']
+        api_url = api_url_base + '/%s/%s' % (vm_id, operation)
+
+        vm_action = '''
+        <action/>
+        '''
+        r = self.req.post(
+            api_url,
+            data=vm_action,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Failed to %s vm %s" % (operation, vm_name))
+
+    def remove_vm(self, vm_name):
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="vms")
+
+        vm_id = self.list_vm(vm_name)['id']
+        api_url = api_url_base + '/%s' % vm_id
+
+        r = self.req.delete(
+            api_url,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Failed to remove vm %s" % vm_name)
+
+    def create_vm_disk_attachment(self, vm_name, sd_name, disk_name, disk_size):
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="vms")
+
+        vm_id = self.list_vm(vm_name)['id']
+        api_url = api_url_base + '/{}'.format(vm_id) + '/diskattachments'
+
+        attach_disk_post_body = '''
+        <disk_attachment>
+          <bootable>false</bootable>
+          <interface>virtio</interface>
+          <active>true</active>
+          <disk>
+            <format>cow</format>
+            <name>{disk_name}</name>
+            <provisioned_size>{disk_size}</provisioned_size>
+            <storage_domains>
+              <storage_domain>
+                <name>{sd_name}</name>
+              </storage_domain>
+            </storage_domains>
+          </disk>
+        </disk_attachment>
+        '''
+
+        body = attach_disk_post_body.format(
+            disk_name=disk_name, disk_size=disk_size, sd_name=sd_name)
+
+        r = self.req.post(
+            api_url,
+            data=body,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 201:
+            print r.text
+            raise RuntimeError("Failed to create disk attachment %s for VM %s" % (
+                disk_name, vm_name))
+
 
 if __name__ == '__main__':
-    rhvm = RhevmAction("rhvm41-vlan50-1.lab.eng.pek2.redhat.com")
-    sd_id = rhvm.list_storage_domain("cockpit_auto")['id']
-    print sd_id
+    rhvm = RhevmAction("rhvm41-vdsm-auto.lab.eng.pek2.redhat.com")
 
-    rhvm.create_image_disk(
-        sd_name='cockpit_auto', disk_name='cockpit_auto', size='50000')
+    vm_name = "vdsm_local_vm"
+    rhvm.start_vm(vm_name)
