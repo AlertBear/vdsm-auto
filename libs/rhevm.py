@@ -1,5 +1,6 @@
 import base64
 import time
+import json
 import requests
 import shutil
 import re
@@ -60,6 +61,7 @@ class RhevmAction:
 
     ###################################
     # Datacenter related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-data_centers
     ###################################
     def create_datacenter(self, dc_name, is_local=False):
         api_url = self.api_url.format(
@@ -120,6 +122,7 @@ class RhevmAction:
 
     ##################################
     # Cluster related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-clusters
     ##################################
     def create_cluster(self, dc_name, cluster_name, cpu_type):
         api_url = self.api_url.format(
@@ -204,6 +207,7 @@ class RhevmAction:
 
     ############################################
     # Host related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-hosts
     ############################################
     def create_new_host(self, ip, host_name, password, cluster_name='Default'):
         api_url = self.api_url.format(rhevm_fqdn=self.rhevm_fqdn, item="hosts")
@@ -283,6 +287,7 @@ class RhevmAction:
 
     ######################################
     # Storage domain related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-storage_domains
     ######################################
     def create_plain_storage_domain(
             self,
@@ -341,7 +346,7 @@ class RhevmAction:
           <storage>
             <type>{storage_type}</type>
             <logical_units>
-              <logical_unit id={logical_unit_id}/>
+              <logical_unit id="{logical_unit_id}"/>
             </logical_units>
           </storage>
           <host>
@@ -455,15 +460,16 @@ class RhevmAction:
 
     ##########################################
     # Disk related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-disks
     ##########################################
-    def create_image_disk(self, sd_name, disk_name, size):
+    def create_float_image_disk(self, sd_name, disk_name, size):
         api_url = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="disks")
 
         new_disk_post_body = '''
         <disk>
           <storage_domains>
-            <storage_domain id={sd_id}/>
+            <storage_domain id="{sd_id}"/>
           </storage_domains>
           <name>{disk_name}</name>
           <provisioned_size>{size}</provisioned_size>
@@ -474,7 +480,6 @@ class RhevmAction:
         body = new_disk_post_body.format(
             sd_id=sd_id, disk_name=disk_name, size=size)
 
-        print body
         r = self.req.post(
             api_url, data=body, headers=self.headers, verify=self.rhevm_cert)
 
@@ -482,7 +487,11 @@ class RhevmAction:
             print r.text
             raise RuntimeError("Failed to create image disk")
 
-    def create_direct_lun_disk(self, disk_name, host_name, lun_type, unit_id):
+    def create_float_direct_lun_disk(self, disk_name, host_name, lun_type, unit_id):
+        #
+        # lun_type = {'iscsi', 'fcp', 'nfs', 'localfs', 'posixfs',
+        # 'glusterfs', 'glance', 'cinder'}
+        #
         api_url = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="disks")
 
@@ -490,18 +499,22 @@ class RhevmAction:
         <disk>
           <alias>{disk_name}</alias>
           <lun_storage>
-            <host>
-              name={host_name}
-            </host>
+            <host id="{host_id}"/>
             <type>{lun_type}</type>
             <logical_units>
-              <logical_unit id={unit_id}/>
+              <logical_unit id="{unit_id}">
+                <address>10.35.10.20</address>
+                <port>3260</port>
+                <target>iqn.2017-01.com.myhost:444</target>
+              </logical_unit>
             </logical_units>
           </lun_storage>
         </disk>
         '''
+
+        host_id = self.list_host(host_name)['id']
         body = new_disk_post_body.format(
-            disk_name=disk_name, host_name=host_name, lun_type=lun_type, unit_id=unit_id)
+            disk_name=disk_name, host_id=host_id, lun_type=lun_type, unit_id=unit_id)
 
         r = self.req.post(
             api_url, data=body, headers=self.headers, verify=self.rhevm_cert)
@@ -515,6 +528,7 @@ class RhevmAction:
             rhevm_fqdn=self.rhevm_fqdn, item="vms")
 
         vm_id = self.list_vm(vm_name)['id']
+        disk_id = self.list_disk(disk_name)['id']
 
         api_url = api_url_base + '/{}'.format(vm_id) + '/diskattachments'
 
@@ -523,11 +537,11 @@ class RhevmAction:
           <bootable>true</bootable>
           <interface>ide</interface>
           <active>true</active>
-          <disk>name={disk_name}</disk>
+          <disk id="{disk_id}"/>
         </disk_attachment>
         '''
 
-        body = attach_disk_post_body.format(disk_name=disk_name)
+        body = attach_disk_post_body.format(disk_id=disk_id)
 
         r = self.req.post(
             api_url,
@@ -540,8 +554,30 @@ class RhevmAction:
             raise RuntimeError("Failed to attach disk %s to VM %s" % (
                 disk_name, vm_name))
 
+    def list_disk(self, disk_name):
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="disks")
+
+        r = self.req.get(
+            api_url_base,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Can not list disks from %s" % self.rhevm_fqdn)
+
+        disks = r.json()
+        if disks:
+            for disk in disks['disk']:
+                if disk['name'] == disk_name:
+                    return disk
+        else:
+            return
+
     ##########################################
     # VM related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-vms
     ##########################################
     def create_vm(self, vm_name, tpl_name="Blank", cluster="default"):
         api_url_base = self.api_url.format(
@@ -665,7 +701,7 @@ class RhevmAction:
             print r.text
             raise RuntimeError("Failed to remove vm %s" % vm_name)
 
-    def create_vm_disk_attachment(self, vm_name, sd_name, disk_name, disk_size):
+    def create_vm_image_disk(self, vm_name, sd_name, disk_name, disk_size):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="vms")
 
@@ -674,7 +710,7 @@ class RhevmAction:
 
         attach_disk_post_body = '''
         <disk_attachment>
-          <bootable>false</bootable>
+          <bootable>true</bootable>
           <interface>virtio</interface>
           <active>true</active>
           <disk>
@@ -704,9 +740,85 @@ class RhevmAction:
             raise RuntimeError("Failed to create disk attachment %s for VM %s" % (
                 disk_name, vm_name))
 
+    def create_vm_direct_lun_disk(self, vm_name, disk_name, host_name, lun_type, unit_id):
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="vms")
+
+        vm_id = self.list_vm(vm_name)['id']
+        api_url = api_url_base + '/{}'.format(vm_id) + '/diskattachments'
+
+        attach_disk_post_body = '''
+        <disk_attachment>
+          <bootable>false</bootable>
+          <interface>virtio</interface>
+          <active>true</active>
+            <disk>
+              <alias>{disk_name}</alias>
+              <lun_storage>
+                <host id="{host_id}"/>
+                <type>{lun_type}</type>
+                <logical_units>
+                  <logical_unit id="{unit_id}"/>
+                </logical_units>
+              </lun_storage>
+            </disk>
+        </disk_attachment>
+        '''
+        host_id = self.list_host(host_name)['id']
+        body = attach_disk_post_body.format(
+            disk_name=disk_name, host_id=host_id, lun_type=lun_type, unit_id=unit_id)
+
+        r = self.req.post(
+            api_url,
+            data=body,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 201:
+            print r.text
+            raise RuntimeError("Failed to create disk attachment %s for VM %s" % (
+                disk_name, vm_name))
+
+    def list_vm_disk_attachments(self, vm_name, disk_name):
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn, item="vms")
+        vm_id = self.list_vm(vm_name)['id']
+        api_url = api_url_base + '/{}'.format(vm_id) + '/diskattachments'
+
+        r = self.req.get(
+            api_url,
+            headers=self.headers,
+            verify=self.rhevm_cert)
+
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Can not list disk attachments from %s" % self.rhevm_fqdn)
+
+        diskattachment = r.json()
+        if diskattachment:
+            disk_id = self.list_disk(disk_name)['id']
+            print disk_id
+            for disk in diskattachment['disk_attachment']:
+                if disk['id'] == disk_id:
+                    return disk
+        else:
+            return
+
 
 if __name__ == '__main__':
-    rhvm = RhevmAction("rhvm41-vdsm-auto.lab.eng.pek2.redhat.com")
+    '''
+    rhvm.create_direct_lun_disk(
+        disk_name="test_vm_Disk1, host_name="dguo_fc", lun_type="fcp", unit_id="36005076300810b3e0000000000000269")
+    jres = rhvm.list_disk(disk_name)
+    print jres['id']
 
-    vm_name = "vdsm_local_vm"
-    rhvm.start_vm(vm_name)
+    #rhvm.attach_disk_to_vm(vm_name="test_vm", disk_name="test_vm_Disk1")
+    #print rhvm.list_vm_disk_attachments(vm_name="test_vm", disk_name="test_vm_Disk1)
+    '''
+    rhvm = RhevmAction("rhvm41-vlan50-2.lab.eng.pek2.redhat.com")
+    rhvm.create_vm_direct_lun_disk(
+        disk_name="test_vm_Disk1",
+        vm_name="test_vm",
+        host_name="dguo_fc",
+        lun_type="fcp",
+        unit_id="36005076300810b3e0000000000000269")
