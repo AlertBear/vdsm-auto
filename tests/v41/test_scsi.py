@@ -11,21 +11,24 @@ rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['ip']
 
 # Get host to be used
-host_ip = FC_SYS[FC_HOST]['ip']
-host_pass = FC_SYS[FC_HOST]['password']
+host_ip = SCSI_SYS[SCSI_HOST]['ip']
+host_pass = SCSI_SYS[SCSI_HOST]['password']
 
-# Get fc storage info
-available_luns = FC_SYS[FC_HOST]['avl_luns']
+# Get scsi storage info
+available_luns = SCSI_SYS[SCSI_HOST]['avl_luns']
 lun_as_sd = available_luns[0]
 lun_as_disk = available_luns[1]
+lun_address = SCSI_SYS[SCSI_HOST]['lun_address']
+lun_port = SCSI_SYS[SCSI_HOST]['lun_port']
+lun_target = SCSI_SYS[SCSI_HOST]['lun_target']
 
-dc_name = "vdsm_fc_dc"
-cluster_name = "vdsm_fc_cluster"
-host_name = "vdsm_fc_host"
+dc_name = "vdsm_scsi_dc"
+cluster_name = "vdsm_scsi_cluster"
+host_name = "vdsm_scsi_host"
 
-sd_name = "vdsm_fc_sd"
-vm_name = "vdsm_fc_vm"
-disk_name = "vdsm_fc_disk"
+sd_name = "vdsm_scsi_sd"
+vm_name = "vdsm_scsi_vm"
+disk_name = "vdsm_scsi_disk"
 
 env.host_string = 'root@' + host_ip
 env.password = host_pass
@@ -50,6 +53,7 @@ def rhvm(request):
         if mrhvm.list_host(host_name):
             print "Removing host..."
             mrhvm.remove_host(host_name)
+
         print "Removing cluster..."
         mrhvm.remove_cluster(cluster_name)
 
@@ -84,12 +88,12 @@ def test_set(rhvm):
         i += 1
 
 
-def test_18116(rhvm):
+def test_18115(rhvm):
     """
-    Add FC storage to rhvh in rhvm successfully after add rhvh to rhvm
+    Add iscsi storage to rhvh in rhvm successfully after add rhvh to rhvm
     """
     # Create fc storage domain
-    print "Creating fc storage domain..."
+    print "Creating scsi storage domain..."
     with settings(warn_only=True):
         cmd = "lsblk -l|grep %s|sort -n|uniq|awk '{print $1}'" % lun_as_sd
         output = run(cmd)
@@ -101,30 +105,30 @@ def test_18116(rhvm):
         rhvm.create_fc_scsi_storage_domain(
             domain_name=sd_name,
             domain_type='data',
-            storage_type='fcp',
+            storage_type='iscsi',
             lun_id=lun_as_sd,
             host=host_name)
     except Exception as e:
         print e
         print traceback.print_exc()
-        assert 0, "Failed to create fc storage domain %s for %s" % (
+        assert 0, "Failed to create scsi storage domain %s for %s" % (
             sd_name, dc_name)
     time.sleep(60)
 
-    # Attach fc storage domain to datacenter
-    print "Attaching fc storage domain to datacenter..."
+    # Attach iscsi storage domain to datacenter
+    print "Attaching iscsi storage domain to datacenter..."
     try:
         rhvm.attach_sd_to_datacenter(sd_name=sd_name, dc_name=dc_name)
     except Exception as e:
         print e
         print traceback.print_exc()
-        assert 0, "Failed to attach fc storage domain to datacenter"
+        assert 0, "Failed to attach iscsi storage domain to datacenter"
     time.sleep(30)
 
 
-def test_18131(rhvm):
+def test_18132(rhvm):
     """
-    Install VM on direct lun disk on FC storage
+    Install VM on direct lun disk on iscsi storage
     """
     # Create virtual machine
     print "Creating new virtual machine..."
@@ -144,14 +148,16 @@ def test_18131(rhvm):
         for dp in output.split():
             cmd = "dd if=/dev/zero of=/dev/mapper/%s bs=1M count=500" % dp
             run(cmd)
-
     try:
         rhvm.create_vm_direct_lun_disk(
             disk_name=disk_name,
             vm_name=vm_name,
             host_name=host_name,
-            lun_type="fcp",
-            lun_id=lun_as_disk
+            lun_type="iscsi",
+            lun_id=lun_as_disk,
+            lun_addr=lun_address,
+            lun_port=lun_port,
+            lun_target=lun_target
         )
     except Exception as e:
         print e
@@ -183,43 +189,45 @@ def test_18131(rhvm):
 
 
 def test_unset(rhvm):
-    # Shutdown the vm
-    print "Poweroff the new VM..."
-    try:
-        rhvm.operate_vm(vm_name, 'stop')
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-        assert 0, "Failed to poweroff the VM"
-    time.sleep(30)
+    # Poweroff the vm
+    if rhvm.list_vm(vm_name):
+        print "Poweroff the new VM..."
+        try:
+            rhvm.operate_vm(vm_name, 'stop')
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+            assert 0, "Failed to poweroff the VM"
+        time.sleep(30)
 
-    # Wait VM is down
-    i = 0
-    while True:
-        if i > 30:
-            assert 0, "Failed to poweroff the new VM"
-        vm_status = rhvm.list_vm(vm_name)['status']
-        print "VM: %s" % vm_status
-        if vm_status == 'down':
-            break
+        # Wait VM is down
+        i = 0
+        while True:
+            if i > 30:
+                assert 0, "Failed to poweroff the new VM"
+            vm_status = rhvm.list_vm(vm_name)['status']
+            print "VM: %s" % vm_status
+            if vm_status == 'down':
+                break
+            time.sleep(10)
+            i += 1
         time.sleep(10)
-        i += 1
-    time.sleep(10)
 
-    # Remove the new VM
-    print "Removing the new VM..."
-    try:
-        rhvm.remove_vm(vm_name)
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-    time.sleep(60)
+        # Remove the new VM
+        print "Removing the new VM..."
+        try:
+            rhvm.remove_vm(vm_name)
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+        time.sleep(60)
 
-    # Maintenance host
-    print "Removing the host..."
-    try:
-        rhvm.remove_host(host_name)
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-    time.sleep(30)
+    if rhvm.list_host(host_name):
+        # Maintenance host
+        print "Removing the host..."
+        try:
+            rhvm.remove_host(host_name)
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+        time.sleep(30)

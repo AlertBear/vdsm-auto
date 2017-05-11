@@ -334,11 +334,10 @@ class RhevmAction:
             domain_name,
             domain_type,
             storage_type,
-            logical_unit_id,
+            lun_id,
             host):
         api_url = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="storagedomains")
-
         storage_domain_post_body = '''
         <storage_domain>
           <name>{domain_name}</name>
@@ -346,7 +345,7 @@ class RhevmAction:
           <storage>
             <type>{storage_type}</type>
             <logical_units>
-              <logical_unit id="{logical_unit_id}"/>
+              <logical_unit id="{lun_id}"/>
             </logical_units>
           </storage>
           <host>
@@ -354,12 +353,11 @@ class RhevmAction:
           </host>
         </storage_domain>
         '''
-
         body = storage_domain_post_body.format(
             domain_name=domain_name,
             domain_type=domain_type,
             storage_type=storage_type,
-            storage_addr=logical_unit_id,
+            lun_id=lun_id,
             host=host)
 
         r = self.req.post(
@@ -740,33 +738,73 @@ class RhevmAction:
             raise RuntimeError("Failed to create disk attachment %s for VM %s" % (
                 disk_name, vm_name))
 
-    def create_vm_direct_lun_disk(self, vm_name, disk_name, host_name, lun_type, unit_id):
+    def create_vm_direct_lun_disk(
+            self,
+            vm_name,
+            disk_name,
+            host_name,
+            lun_type,
+            lun_id,
+            lun_addr="",
+            lun_port="",
+            lun_target=""):
         api_url_base = self.api_url.format(
             rhevm_fqdn=self.rhevm_fqdn, item="vms")
 
+        host_id = self.list_host(host_name)['id']
         vm_id = self.list_vm(vm_name)['id']
         api_url = api_url_base + '/{}'.format(vm_id) + '/diskattachments'
 
-        attach_disk_post_body = '''
-        <disk_attachment>
-          <bootable>false</bootable>
-          <interface>virtio</interface>
-          <active>true</active>
-            <disk>
-              <alias>{disk_name}</alias>
-              <lun_storage>
-                <host id="{host_id}"/>
-                <type>{lun_type}</type>
-                <logical_units>
-                  <logical_unit id="{unit_id}"/>
-                </logical_units>
-              </lun_storage>
-            </disk>
-        </disk_attachment>
-        '''
-        host_id = self.list_host(host_name)['id']
-        body = attach_disk_post_body.format(
-            disk_name=disk_name, host_id=host_id, lun_type=lun_type, unit_id=unit_id)
+        if lun_type == "iscsi":
+            attach_disk_post_body = '''
+            <disk_attachment>
+              <bootable>false</bootable>
+              <interface>virtio</interface>
+              <active>true</active>
+                <disk>
+                  <alias>{disk_name}</alias>
+                  <lun_storage>
+                    <host id="{host_id}"/>
+                    <type>{lun_type}</type>
+                    <logical_units>
+                      <logical_unit id="{lun_id}">
+                        <address>{lun_addr}</address>
+                        <port>{lun_port}</port>
+                        <target>{lun_target}</target>
+                      </logical_unit>
+                    </logical_units>
+                  </lun_storage>
+                </disk>
+            </disk_attachment>
+            '''
+            body = attach_disk_post_body.format(
+                disk_name=disk_name,
+                host_id=host_id,
+                lun_type=lun_type,
+                lun_id=lun_id,
+                lun_addr=lun_addr,
+                lun_port=lun_port,
+                lun_target=lun_target)
+        else:
+            attach_disk_post_body = '''
+            <disk_attachment>
+              <bootable>false</bootable>
+              <interface>virtio</interface>
+              <active>true</active>
+                <disk>
+                  <alias>{disk_name}</alias>
+                  <lun_storage>
+                    <host id="{host_id}"/>
+                    <type>{lun_type}</type>
+                    <logical_units>
+                      <logical_unit id="{lun_id}"/>
+                    </logical_units>
+                  </lun_storage>
+                </disk>
+            </disk_attachment>
+            '''
+            body = attach_disk_post_body.format(
+                disk_name=disk_name, host_id=host_id, lun_type=lun_type, lun_id=lun_id)
 
         r = self.req.post(
             api_url,
@@ -821,4 +859,4 @@ if __name__ == '__main__':
         vm_name="test_vm",
         host_name="dguo_fc",
         lun_type="fcp",
-        unit_id="36005076300810b3e0000000000000269")
+        lun_id="36005076300810b3e0000000000000269")
