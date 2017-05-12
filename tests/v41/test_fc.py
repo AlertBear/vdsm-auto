@@ -1,6 +1,7 @@
 import pytest
 import time
 import traceback
+from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
@@ -90,13 +91,9 @@ def test_18116(rhvm):
     """
     # Create fc storage domain
     print "Creating fc storage domain..."
-    with settings(warn_only=True):
-        cmd = "lsblk -l|grep %s|sort -n|uniq|awk '{print $1}'" % lun_as_sd
-        output = run(cmd)
-        for dp in output.split():
-            cmd = "dd if=/dev/zero of=/dev/mapper/%s bs=1M count=500" % dp
-            run(cmd)
 
+    with settings(warn_only=True):
+        clear_fc_scsi_lun(lun_as_sd)
     try:
         rhvm.create_fc_scsi_storage_domain(
             domain_name=sd_name,
@@ -139,12 +136,7 @@ def test_18131(rhvm):
     # Create new disk attachment to above vm
     print "Creating new disk attachment to the virtual machine..."
     with settings(warn_only=True):
-        cmd = "lsblk -l|grep %s|sort -n|uniq|awk '{print $1}'" % lun_as_disk
-        output = run(cmd)
-        for dp in output.split():
-            cmd = "dd if=/dev/zero of=/dev/mapper/%s bs=1M count=500" % dp
-            run(cmd)
-
+        clear_fc_scsi_lun(lun_as_disk)
     try:
         rhvm.create_vm_direct_lun_disk(
             disk_name=disk_name,
@@ -184,42 +176,44 @@ def test_18131(rhvm):
 
 def test_unset(rhvm):
     # Shutdown the vm
-    print "Poweroff the new VM..."
-    try:
-        rhvm.operate_vm(vm_name, 'stop')
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-        assert 0, "Failed to poweroff the VM"
-    time.sleep(30)
+    if rhvm.list_vm(vm_name):
+        print "Poweroff the new VM..."
+        try:
+            rhvm.operate_vm(vm_name, 'stop')
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+            assert 0, "Failed to poweroff the VM"
+        time.sleep(30)
 
-    # Wait VM is down
-    i = 0
-    while True:
-        if i > 30:
-            assert 0, "Failed to poweroff the new VM"
-        vm_status = rhvm.list_vm(vm_name)['status']
-        print "VM: %s" % vm_status
-        if vm_status == 'down':
-            break
+        # Wait VM is down
+        i = 0
+        while True:
+            if i > 30:
+                assert 0, "Failed to poweroff the new VM"
+            vm_status = rhvm.list_vm(vm_name)['status']
+            print "VM: %s" % vm_status
+            if vm_status == 'down':
+                break
+            time.sleep(10)
+            i += 1
         time.sleep(10)
-        i += 1
-    time.sleep(10)
 
-    # Remove the new VM
-    print "Removing the new VM..."
-    try:
-        rhvm.remove_vm(vm_name)
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-    time.sleep(60)
+        # Remove the new VM
+        print "Removing the new VM..."
+        try:
+            rhvm.remove_vm(vm_name)
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+        time.sleep(60)
 
     # Maintenance host
-    print "Removing the host..."
-    try:
-        rhvm.remove_host(host_name)
-    except Exception as e:
-        print e
-        print traceback.print_exc()
-    time.sleep(30)
+    if rhvm.list_host(host_name):
+        print "Removing the host..."
+        try:
+            rhvm.remove_host(host_name)
+        except Exception as e:
+            print e
+            print traceback.print_exc()
+        time.sleep(30)

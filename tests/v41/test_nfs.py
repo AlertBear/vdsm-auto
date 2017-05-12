@@ -1,6 +1,7 @@
 import pytest
 import time
 import traceback
+from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
@@ -344,4 +345,3 @@ def test_unset(rhvm):
         print e
         print traceback.print_exc()
     time.sleep(30)
-

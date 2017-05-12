@@ -1,6 +1,7 @@
 import pytest
 import time
 import traceback
+from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
@@ -95,12 +96,7 @@ def test_18115(rhvm):
     # Create fc storage domain
     print "Creating scsi storage domain..."
     with settings(warn_only=True):
-        cmd = "lsblk -l|grep %s|sort -n|uniq|awk '{print $1}'" % lun_as_sd
-        output = run(cmd)
-        for dp in output.split():
-            cmd = "dd if=/dev/zero of=/dev/mapper/%s bs=1M count=500" % dp
-            run(cmd)
-
+        clear_fc_scsi_lun(lun_as_sd)
     try:
         rhvm.create_fc_scsi_storage_domain(
             domain_name=sd_name,
@@ -143,11 +139,7 @@ def test_18132(rhvm):
     # Create new disk attachment to above vm
     print "Creating new disk attachment to the virtual machine..."
     with settings(warn_only=True):
-        cmd = "lsblk -l|grep %s|sort -n|uniq|awk '{print $1}'" % lun_as_disk
-        output = run(cmd)
-        for dp in output.split():
-            cmd = "dd if=/dev/zero of=/dev/mapper/%s bs=1M count=500" % dp
-            run(cmd)
+        clear_fc_scsi_lun(lun_as_disk)
     try:
         rhvm.create_vm_direct_lun_disk(
             disk_name=disk_name,
