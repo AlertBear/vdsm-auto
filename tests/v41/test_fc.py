@@ -9,7 +9,7 @@ from sysinfo import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
-rhvm_pass = RHVM_INFO[RHVM_FQDN]['ip']
+rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
 host_ip = FC_SYS[FC_HOST]['ip']

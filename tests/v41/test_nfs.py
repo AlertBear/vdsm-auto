@@ -9,7 +9,7 @@ from sysinfo import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
-rhvm_pass = RHVM_INFO[RHVM_FQDN]['ip']
+rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
 host_ip = LOCAL_SYS[LOCAL_HOST]['ip']
@@ -177,6 +177,7 @@ def test_18122(rhvm):
         time.sleep(10)
         i += 1
 
+    '''
     # Suspend the vm
     print "Suspended the new VM..."
     try:
@@ -191,7 +192,7 @@ def test_18122(rhvm):
     i = 0
     while True:
         if i > 30:
-            assert 0, "Failed to shutdown the new VM"
+            assert 0, "Failed to suspend the new VM"
         vm_status = rhvm.list_vm(vm_name)['status']
         print "VM: %s" % vm_status
         if vm_status == 'pending':
@@ -221,6 +222,7 @@ def test_18122(rhvm):
             break
         time.sleep(10)
         i += 1
+    '''
 
     # Shutdown the vm
     print "Shutdown the new VM..."

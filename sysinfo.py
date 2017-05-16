@@ -6,6 +6,14 @@ RHVM_INFO = {
         "ip": "10.73.75.48",
         "password": "password"
     },
+    "rhvm41-vlan50-1.lab.eng.pek2.redhat.com": {
+        "ip": "10.73.75.93",
+        "password": "password"
+    },
+    "rhvm41-vlan50-2.lab.eng.pek2.redhat.com": {
+        "ip": "10.73.75.151",
+        "password": "password"
+    },
 }
 
 #
@@ -14,6 +22,11 @@ RHVM_INFO = {
 LOCAL_SYS = {
     "10.66.9.52": {
         "ip": "10.66.9.52",
+        "password": "redhat",
+        "data_path": "/home/data",
+    },
+    "10.73.73.35": {
+        "ip": "10.73.73.35",
         "password": "redhat",
         "data_path": "/home/data",
     },
