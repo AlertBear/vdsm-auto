@@ -95,44 +95,62 @@ SCSI_SYS = {
 #
 # Machines for Network bond/vlan/bv test
 #
+# Notes or Rules:
+# 1. Configure bond as bond0 while testing bond
+# 2. Configre vlan as nics[0].$vlan_id while testing vlan
+# 3. Confiure vlan over bond as bond1.$vlan_id while testing bv
+#
+# Do configuration according to the rules above before test,
+# otherwise test will fail
+#
 NETWORK_SYS = {
     "dell-per515-01.lab.eng.pek2.redhat.com": {
         "ip": "10.73.75.170",
-        "pub_nic": "em2",
-        "bond": {"em1": "08:9e:01:63:2c:b2", "em2": "08:9e:01:63:2c:b3"},
-        "bond_mode": "",
-        "vlan": {"p2p1": "00:1b:21:a6:64:6c", "p2p2": "00:1b:21:a6:64:6d", "p3p1": "00:1b:21:a6:3d:7a"},
-        "vlan_id": "50",
-        "bv_mode": "",
+        "primary_nic": "em2",
+        "bond": {"nics": ["em2", "em1"],
+                 "em1": "08:9e:01:63:2c:b2",
+                 "em2": "08:9e:01:63:2c:b3"},
+
+        "vlan": {"id": "50",
+                 "nics": ["p2p1", "p2p2", "p3p1"],
+                 "p2p1": "00:1b:21:a6:64:6c",
+                 "p2p2": "00:1b:21:a6:64:6d",
+                 "p3p1": "00:1b:21:a6:3d:7a"},
     },
 
     "ibm-x3650m5-04.lab.eng.pek2.redhat.com": {
         "ip": "10.73.130.225",
-        "pub_nic": "eno1",
-        "bond": {"eno1": "08:94:ef:21:c0:4d", "eno2": "08:94:ef:21:c0:4e"},
-        "bond_mode": "",
-        "vlan": {"eno3": "08:94:ef:21:c0:4f", "eno4": "08:94:ef:21:c0:50"},
-        "vlan_id": "50",
-        "bv_mode": "",
+        "primary_nic": "eno1",
+        "bond": {"nics": ["eno1", "eno2"],
+                 "eno1": "08:94:ef:21:c0:4d",
+                 "eno2": "08:94:ef:21:c0:4e"},
+        "vlan": {"id": "50",
+                 "nics": ["eno3", "eno4"],
+                 "eno3": "08:94:ef:21:c0:4f",
+                 "eno4": "08:94:ef:21:c0:50"},
     },
 
     "dell-per730-35.lab.eng.pek2.redhat.com": {
         "ip": "",
-        "pub_nic": "em1",
-        "bond": {"em1": "24:6e:96:19:b9:a4", "em2": "24:6e:96:19:b9:a5"},
-        "bond_mode": "",
-        "vlan": {"p7p1": "a0:36:9f:9d:3b:fe", "p7p2": "a0:36:9f:9d:3b:ff"},
-        "vlan_id": "50",
-        "bv_mode": ""
+        "primary_nic": "em1",
+        "bond": {"nics": ["em1", "em2"],
+                 "em1": "24:6e:96:19:b9:a4",
+                 "em2": "24:6e:96:19:b9:a5"},
+        "vlan": {"id": "50",
+                 "nics": ["p7p1", "p7p2"],
+                 "p7p1": "a0:36:9f:9d:3b:fe",
+                 "p7p2": "a0:36:9f:9d:3b:ff"},
     },
 
     "dell-per730-34.lab.eng.pek2.redhat.com": {
         "ip": "",
-        "pub_nic": "em1",
-        "bond": {"em1": "24:6e:96:19:bb:70", "em2": "24:6e:96:19:bb:71"},
-        "bond_mode": "",
-        "vlan": {"em3": "24:6e:96:19:bb:72", "em4": "24:6e:96:19:bb:73"},
-        "vlan_id": "50",
-        "bv_mode": ""
+        "primary_nic": "em1",
+        "bond": {"nics": ["em1", "em2"],
+                 "em1": "24:6e:96:19:bb:70",
+                 "em2": "24:6e:96:19:bb:71"},
+        "vlan": {"id": "50",
+                 "nics": ["em3", "em4"],
+                 "em3": "24:6e:96:19:bb:72",
+                 "em4": "24:6e:96:19:bb:73"},
     }
 }
