@@ -1,7 +1,7 @@
 #
 # RHVM fqdn
 #
-RHVM_FQDN = "rhvm41-vdsm-auto.lab.eng.pek2.redhat.com"
+RHVM_FQDN = "rhvm41-vlan50-2.lab.eng.pek2.redhat.com"
 
 #
 # Test For local storage and nfs storage
@@ -26,4 +26,4 @@ SCSI_HOST = "dell-per515-01.lab.eng.pek2.redhat.com"
 #
 # Test for network bond/vlan/bv
 #
-NETWORK_HOST = "ibm-x3650m5-04.lab.eng.pek2.redhat.com"
+NETWORK_HOST = "dell-per515-01.lab.eng.pek2.redhat.com"

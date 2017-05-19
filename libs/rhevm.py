@@ -457,6 +457,61 @@ class RhevmAction:
     """
 
     ##########################################
+    # Network related functions
+    # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-network
+    ##########################################
+    def list_network(self, dc_name, network_name):
+        api_url = self.api_url.format(rhevm_fqdn=self.rhevm_fqdn, item="networks")
+
+        dc_id = self.list_datacenter(dc_name)['id']
+
+        r = self.req.get(api_url, headers=self.headers, verify=self.rhevm_cert)
+
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Can not list networks from %s" % self.rhevm_fqdn)
+
+        networks = r.json()
+        if networks:
+            for network in networks['network']:
+                if network['data_center']['id'] == dc_id:
+                    if network['name'] == network_name:
+                        return network
+        else:
+            return
+
+    def update_dc_network(self, dc_name, network_name, key, value):
+        """
+        Update the network of the datacenter
+        key: [name, description, ip, vlan, stp, display]
+        """
+        api_url_base = self.api_url.format(
+            rhevm_fqdn=self.rhevm_fqdn,
+            item="datacenters")
+        dc_id = self.list_datacenter(dc_name)['id']
+        network_id = self.list_network(dc_name, network_name)['id']
+        api_url = api_url_base + "/%s" % dc_id + "/networks/%s" % network_id
+
+        if key == "vlan":
+            dc_network_post_body = '''
+            <network>
+              <vlan id="{value}"/>
+            </network>
+            '''
+        else:
+            dc_network_post_body = '''
+            <network>
+              <{key}>{value}</{key}>
+            </network>
+            '''
+        body = dc_network_post_body.format(key=key, value=value)
+
+        r = self.req.put(api_url, headers=self.headers, verify=self.rhevm_cert, data=body)
+        if r.status_code != 200:
+            print r.text
+            raise RuntimeError("Failed to update network")
+
+    ##########################################
     # Disk related functions
     # https://rhvm41-vlan50-1.lab.eng.pek2.redhat.com/ovirt-engine/apidoc/#services-disks
     ##########################################
@@ -852,7 +907,7 @@ if __name__ == '__main__':
 
     #rhvm.attach_disk_to_vm(vm_name="test_vm", disk_name="test_vm_Disk1")
     #print rhvm.list_vm_disk_attachments(vm_name="test_vm", disk_name="test_vm_Disk1)
-    '''
+
     rhvm = RhevmAction("rhvm41-vlan50-2.lab.eng.pek2.redhat.com")
     rhvm.create_vm_direct_lun_disk(
         disk_name="test_vm_Disk1",
@@ -860,3 +915,8 @@ if __name__ == '__main__':
         host_name="dguo_fc",
         lun_type="fcp",
         lun_id="36005076300810b3e0000000000000269")
+    '''
+    rhvm = RhevmAction("rhvm41-vlan50-2.lab.eng.pek2.redhat.com")
+    print rhvm.list_network(dc_name="vdsm_bva_dc", network_name="ovirtmgmt")
+    rhvm.update_dc_network(dc_name="vdsm_bva_dc", network_name="ovirtmgmt", key="vlan", value="60")
+    print rhvm.list_network(dc_name="vdsm_bva_dc", network_name="ovirtmgmt")

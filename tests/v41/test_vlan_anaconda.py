@@ -53,13 +53,27 @@ def rhvm(request):
     return mrhvm
 
 
-def test_bonda(rhvm):
+def test_18160(rhvm):
+    """
+    Add rhvh to engine over static vlan after anaconda installation
+    """
     with settings(warn_ony=True):
         cmd = "ip a s|grep %s|grep inet" % vlan
         res = run(cmd)
     if res.failed:
         assert 0, "%s is not configured or name incorrect" % vlan
-    vlan_ip = res.split()[2].split('/')[0]
+    vlan_ip = res.split()[1].split('/')[0]
+
+    # Update the default network with a vlan tag
+    print "Updating the network of datacenter with vlan tag..."
+    try:
+        rhvm.update_dc_network(
+            dc_name, "ovirtmgmt", key="vlan", value=vlan_id)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to update the network"
+    time.sleep(10)
 
     # Add new host to above cluster
     print "Adding new host..."

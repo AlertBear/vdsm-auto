@@ -51,7 +51,10 @@ def rhvm(request):
     return mrhvm
 
 
-def test_bonda(rhvm):
+def test_18156(rhvm):
+    """
+    Add rhvh to engine over dhcp bond after anaconda installation
+    """
     with settings(warn_ony=True):
         cmd = "ip a s|grep %s|grep inet" % bond
         res = run(cmd)

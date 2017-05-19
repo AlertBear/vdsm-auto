@@ -18,9 +18,9 @@ host_pass = NETWORK_SYS[NETWORK_HOST]['password']
 vlan_id = NETWORK_SYS[NETWORK_HOST]["vlan"]["id"]
 bv = "bond1" + '.' + vlan_id
 
-dc_name = "vdsm_vlana_dc"
-cluster_name = "vdsm_vlana_cluster"
-host_name = "vdsm_vlana_host"
+dc_name = "vdsm_bva_dc"
+cluster_name = "vdsm_bva_cluster"
+host_name = "vdsm_bva_host"
 
 env.host_string = 'root@' + host_ip
 env.password = host_pass
@@ -52,13 +52,27 @@ def rhvm(request):
     return mrhvm
 
 
-def test_bonda(rhvm):
+def test_18157(rhvm):
+    """
+    Add rhvh to engine over static bond+vlan after anaconda installation
+    """
     with settings(warn_ony=True):
         cmd = "ip a s|grep %s|grep inet" % bv
         res = run(cmd)
     if res.failed:
         assert 0, "%s is not configured or name incorrect" % bv
-    bv_ip = res.split()[2].split('/')[0]
+    bv_ip = res.split()[1].split('/')[0]
+
+    # Update the default network with a vlan tag
+    print "Updating the network of datacenter with vlan tag..."
+    try:
+        rhvm.update_dc_network(
+            dc_name, "ovirtmgmt", key="vlan", value=vlan_id)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to update the network"
+    time.sleep(10)
 
     # Add new host to above cluster
     print "Adding new host..."

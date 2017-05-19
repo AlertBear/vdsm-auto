@@ -70,7 +70,7 @@ FC_SYS = {
 #
 SCSI_SYS = {
     "dell-per515-01.lab.eng.pek2.redhat.com": {
-        "ip": "10.73.75.170",
+        "ip": "10.73.73.17",
         "password": "redhat",
         "local_disk": [],
         "boot_lun": ["360a9800050334c33424b41762d726954"],
@@ -106,6 +106,7 @@ SCSI_SYS = {
 NETWORK_SYS = {
     "dell-per515-01.lab.eng.pek2.redhat.com": {
         "ip": "10.73.75.170",
+        "password": "redhat",
         "primary_nic": "em2",
         "bond": {"nics": ["em2", "em1"],
                  "em1": "08:9e:01:63:2c:b2",
@@ -120,6 +121,7 @@ NETWORK_SYS = {
 
     "ibm-x3650m5-04.lab.eng.pek2.redhat.com": {
         "ip": "10.73.130.225",
+        "password": "redhat",
         "primary_nic": "eno1",
         "bond": {"nics": ["eno1", "eno2"],
                  "eno1": "08:94:ef:21:c0:4d",
@@ -132,6 +134,7 @@ NETWORK_SYS = {
 
     "dell-per730-35.lab.eng.pek2.redhat.com": {
         "ip": "",
+        "password": "redhat",
         "primary_nic": "em1",
         "bond": {"nics": ["em1", "em2"],
                  "em1": "24:6e:96:19:b9:a4",
@@ -144,6 +147,7 @@ NETWORK_SYS = {
 
     "dell-per730-34.lab.eng.pek2.redhat.com": {
         "ip": "",
+        "password": "redhat",
         "primary_nic": "em1",
         "bond": {"nics": ["em1", "em2"],
                  "em1": "24:6e:96:19:bb:70",
