@@ -5,19 +5,19 @@ from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
-from sysinfo import *
+from constants import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
-host_ip = LOCAL_SYS[LOCAL_HOST]['ip']
-host_pass = LOCAL_SYS[LOCAL_HOST]['password']
+host_ip = MACHINE_INFO[TEST_HOST]['ip']
+host_pass = MACHINE_INFO[TEST_HOST]['password']
 
 # Get NFS info
-nfs_ip = NFS_HOST_BE_USED
-nfs_pass = NFS_INFO[NFS_HOST_BE_USED]['password']
+nfs_ip = NFS_INFO[NFS_HOST_BE_USED]['ip']
+nfs_pass = NFS_INFO['password']
 nfs_data_path = NFS_INFO[NFS_HOST_BE_USED]['data_path'][0]
 
 dc_name = "vdsm_nfs_dc"
@@ -222,7 +222,6 @@ def test_18122(rhvm):
             break
         time.sleep(10)
         i += 1
-    '''
 
     # Shutdown the vm
     print "Shutdown the new VM..."
@@ -268,6 +267,7 @@ def test_18122(rhvm):
             break
         time.sleep(10)
         i += 1
+    '''
 
     # Reboot the vm
     print "Reboot the new VM..."

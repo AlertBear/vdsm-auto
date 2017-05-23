@@ -5,18 +5,21 @@ from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
-from sysinfo import *
+from constants import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
-host_ip = FC_SYS[FC_HOST]['ip']
-host_pass = FC_SYS[FC_HOST]['password']
+host_ip = MACHINE_INFO[TEST_HOST]['ip']
+host_pass = MACHINE_INFO[TEST_HOST]['password']
 
 # Get fc storage info
-available_luns = FC_SYS[FC_HOST]['avl_luns']
+fc_flag = MACHINE_INFO[TEST_HOST].get('fc', None)
+if not fc_flag:
+    raise RuntimeError("%s not support for test_fc" % TEST_HOST)
+available_luns = MACHINE_INFO[TEST_HOST]['avl_luns']
 lun_as_sd = available_luns[0]
 lun_as_disk = available_luns[1]
 

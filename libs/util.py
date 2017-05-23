@@ -1,7 +1,23 @@
 import re
 import traceback
 import functools
+import os
 from fabric.api import run, settings
+
+
+def exception(text):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            try:
+                func(*args, **kw)
+            except Exception as e:
+                print e
+                print traceback.print_exc()
+                print text
+            return func(*args, **kw)
+        return wrapper
+    return decorator
 
 
 def get_cpu_type(host_ip, host_pass):
@@ -61,18 +77,3 @@ def clear_fc_scsi_lun(lun_id):
     if vg:
         cmd = "dmsetup remove /dev/%s/*" % vg
         run(cmd)
-
-
-def exception(text):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kw):
-            try:
-                func(*args, **kw)
-            except Exception as e:
-                print e
-                print traceback.print_exc()
-                print text
-            return func(*args, **kw)
-        return wrapper
-    return decorator

@@ -4,26 +4,11 @@
 RHVM_FQDN = "rhvm41-vlan50-2.lab.eng.pek2.redhat.com"
 
 #
-# Test For local storage and nfs storage
-#
-LOCAL_HOST = "10.66.9.52"
-
-#
-# NFS info
+# HOST for the nfs storage
 #
 NFS_HOST_BE_USED = "10.66.8.173"
 
 #
-# Test for fc storage
+# Test on this host, which already be in the constants.py
 #
-FC_HOST = "hp-dl385g8-03.lab.eng.pek2.redhat.com"
-
-#
-# Test for scsi storage
-#
-SCSI_HOST = "dell-per515-01.lab.eng.pek2.redhat.com"
-
-#
-# Test for network bond/vlan/bv
-#
-NETWORK_HOST = "dell-per515-01.lab.eng.pek2.redhat.com"
+TEST_HOST = "dell-per515-01.lab.eng.pek2.redhat.com"

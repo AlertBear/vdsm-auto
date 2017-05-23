@@ -3,6 +3,7 @@ import time
 import traceback
 from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
+from libs.network import NetworkAction
 from libs.util import *
 from conf import *
 from constants import *
@@ -15,16 +16,17 @@ rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 host_ip = MACHINE_INFO[TEST_HOST]['ip']
 host_pass = MACHINE_INFO[TEST_HOST]['password']
 
-dc_name = "vdsm_bonda_dc"
-cluster_name = "vdsm_bonda_cluster"
-host_name = "vdsm_bonda_host"
-
 # Get the bond info
 bond_flag = MACHINE_INFO[TEST_HOST].get('network', None).get('bond')
 if not bond_flag:
     raise RuntimeError("%s not support for test_bond_anaconda" % TEST_HOST)
 
-bond = MACHINE_INFO[TEST_HOST]['network']['bond']['name']
+bond_info = MACHINE_INFO[TEST_HOST]['network']['bond']
+
+dc_name = "vdsm_bondi_dc"
+cluster_name = "vdsm_bondi_cluster"
+host_name = "vdsm_bondi_host"
+
 
 env.host_string = 'root@' + host_ip
 env.password = host_pass
@@ -56,15 +58,22 @@ def rhvm(request):
     return mrhvm
 
 
-def test_18156(rhvm):
+def test_bondi(rhvm):
     """
-    Add rhvh to engine over dhcp bond after anaconda installation
+    Add rhvh to engine over dhcp bond configured by ifcfg files
     """
+    # Setup bond over two nics
+    nk = NetworkAction()
+    nk.host_ip = host_ip
+    nk.host_pass = host_pass
+    nk.setup_bond(bond_info)
+
+    # Check the bond is configured
     with settings(warn_ony=True):
-        cmd = "ip a s|grep %s|grep inet" % bond
+        cmd = "ip a s|grep %s|grep inet" % bond_info['name']
         res = run(cmd)
     if res.failed:
-        assert 0, "%s is not configured or name incorrect" % bond
+        assert 0, "%s is not configured or name incorrect" % bond_info['name']
     bond_ip = res.split()[2].split('/')[0]
 
     # Add new host to above cluster

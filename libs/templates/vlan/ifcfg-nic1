@@ -1,0 +1,4 @@
+DEVICE="nic1"
+HWADDR="xx:xx:xx:xx:xx:xx "
+NM_CONTROLLED="no"
+ONBOOT="yes"

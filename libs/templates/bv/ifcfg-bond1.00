@@ -1,0 +1,8 @@
+BOOTPROTO="dhcp"
+DEVICE="bond1.00"
+IPV6INIT="no"
+IPV6_AUTOCONF="no"
+NM_CONTROLLED="no"
+ONBOOT="yes"
+PEERNTP="yes"
+VLAN="yes"

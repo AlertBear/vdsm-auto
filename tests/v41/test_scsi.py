@@ -5,23 +5,27 @@ from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
-from sysinfo import *
+from constants import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
-host_ip = SCSI_SYS[SCSI_HOST]['ip']
-host_pass = SCSI_SYS[SCSI_HOST]['password']
+host_ip = MACHINE_INFO[TEST_HOST]['ip']
+host_pass = MACHINE_INFO[TEST_HOST]['password']
 
 # Get scsi storage info
-available_luns = SCSI_SYS[SCSI_HOST]['avl_luns']
+scsi_flag = MACHINE_INFO[TEST_HOST].get('scsi', None)
+if not scsi_flag:
+    raise RuntimeError("%s not support for test_scsi" % TEST_HOST)
+
+available_luns = MACHINE_INFO[TEST_HOST]['scsi']['avl_luns']
 lun_as_sd = available_luns[0]
 lun_as_disk = available_luns[1]
-lun_address = SCSI_SYS[SCSI_HOST]['lun_address']
-lun_port = SCSI_SYS[SCSI_HOST]['lun_port']
-lun_target = SCSI_SYS[SCSI_HOST]['lun_target']
+lun_address = MACHINE_INFO[TEST_HOST]['scsi']['lun_address']
+lun_port = MACHINE_INFO[TEST_HOST]['scsi']['lun_port']
+lun_target = MACHINE_INFO[TEST_HOST]['scsi']['lun_target']
 
 dc_name = "vdsm_scsi_dc"
 cluster_name = "vdsm_scsi_cluster"

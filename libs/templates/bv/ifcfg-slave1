@@ -1,0 +1,6 @@
+DEVICE="slave1"
+HWADDR="xx:xx:xx:xx:xx:xx"
+MASTER="bond1"
+NM_CONTROLLED="no"
+ONBOOT="yes"
+SLAVE="yes"

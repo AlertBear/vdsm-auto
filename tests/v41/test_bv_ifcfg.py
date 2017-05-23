@@ -2,6 +2,7 @@ import pytest
 import time
 import traceback
 from libs.rhevm import RhevmAction
+from libs.network import NetworkAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
@@ -15,16 +16,19 @@ rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 host_ip = MACHINE_INFO[TEST_HOST]['ip']
 host_pass = MACHINE_INFO[TEST_HOST]['password']
 
-dc_name = "vdsm_bonda_dc"
-cluster_name = "vdsm_bonda_cluster"
-host_name = "vdsm_bonda_host"
+# Get the bv info
+bv_flag = MACHINE_INFO[TEST_HOST].get('network', None).get('bv')
+if not bv_flag:
+    raise RuntimeError("%s not support for test_bv_anaconda" % TEST_HOST)
 
-# Get the bond info
-bond_flag = MACHINE_INFO[TEST_HOST].get('network', None).get('bond')
-if not bond_flag:
-    raise RuntimeError("%s not support for test_bond_anaconda" % TEST_HOST)
+bv_info = MACHINE_INFO[TEST_HOST]["network"]["bv"]
+bond_name = MACHINE_INFO[TEST_HOST]["network"]["bv"]["bond_name"]
+vlan_id = MACHINE_INFO[TEST_HOST]["network"]["bv"]["vlan_id"]
+bv = bond_name + '.' + vlan_id
 
-bond = MACHINE_INFO[TEST_HOST]['network']['bond']['name']
+dc_name = "vdsm_bva_dc"
+cluster_name = "vdsm_bva_cluster"
+host_name = "vdsm_bva_host"
 
 env.host_string = 'root@' + host_ip
 env.password = host_pass
@@ -56,22 +60,40 @@ def rhvm(request):
     return mrhvm
 
 
-def test_18156(rhvm):
+def test_bvi(rhvm):
     """
-    Add rhvh to engine over dhcp bond after anaconda installation
+    Add rhvh to engine over static bond+vlan after anaconda installation
     """
+    # Setup bv
+    nk = NetworkAction()
+    nk.host_ip = host_ip
+    nk.host_pass = host_pass
+    nk.setup_vlan(bv_info)
+
+    # Check bv is configured
     with settings(warn_ony=True):
-        cmd = "ip a s|grep %s|grep inet" % bond
+        cmd = "ip a s|grep %s|grep inet" % bv
         res = run(cmd)
     if res.failed:
-        assert 0, "%s is not configured or name incorrect" % bond
-    bond_ip = res.split()[2].split('/')[0]
+        assert 0, "%s is not configured or name incorrect" % bv
+    bv_ip = res.split()[1].split('/')[0]
+
+    # Update the default network with a vlan tag
+    print "Updating the network of datacenter with vlan tag..."
+    try:
+        rhvm.update_dc_network(
+            dc_name, "ovirtmgmt", key="vlan", value=vlan_id)
+    except Exception as e:
+        print e
+        print traceback.print_exc()
+        assert 0, "Failed to update the network"
+    time.sleep(10)
 
     # Add new host to above cluster
     print "Adding new host..."
     try:
         rhvm.create_new_host(
-            bond_ip, host_name, host_pass, cluster_name=cluster_name)
+            bv_ip, host_name, host_pass, cluster_name=cluster_name)
     except Exception as e:
         print e
         print traceback.print_exc()

@@ -5,16 +5,20 @@ from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
-from sysinfo import *
+from constants import *
 
 # Get rhvm fqdn info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host info
-host_ip = LOCAL_SYS[LOCAL_HOST]['ip']
-host_pass = LOCAL_SYS[LOCAL_HOST]['password']
-local_data_path = LOCAL_SYS[LOCAL_HOST]['data_path']
+host_ip = MACHINE_INFO[TEST_HOST]['ip']
+host_pass = MACHINE_INFO[TEST_HOST]['password']
+
+local_flag = MACHINE_INFO[TEST_HOST].get('local', None)
+if not local_flag:
+    raise RuntimeError("%s not support for test_local" % TEST_HOST)
+local_data_path = MACHINE_INFO[TEST_HOST]['data_path']
 
 dc_name = "vdsm_local_dc"
 cluster_name = "vdsm_local_cluster"

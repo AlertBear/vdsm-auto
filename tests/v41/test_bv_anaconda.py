@@ -5,18 +5,24 @@ from libs.rhevm import RhevmAction
 from fabric.api import run, env, settings
 from libs.util import *
 from conf import *
-from sysinfo import *
+from constants import *
 
 # Get rhvm info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
 
 # Get host to be used
-host_ip = NETWORK_SYS[NETWORK_HOST]['ip']
-host_pass = NETWORK_SYS[NETWORK_HOST]['password']
+host_ip = MACHINE_INFO[TEST_HOST]['ip']
+host_pass = MACHINE_INFO[TEST_HOST]['password']
 
-vlan_id = NETWORK_SYS[NETWORK_HOST]["vlan"]["id"]
-bv = "bond1" + '.' + vlan_id
+# Get the bv info
+bv_flag = MACHINE_INFO[TEST_HOST].get('network', None).get('bv')
+if not bv_flag:
+    raise RuntimeError("%s not support for test_bv_anaconda" % TEST_HOST)
+
+bond_name = MACHINE_INFO[TEST_HOST]["network"]["bv"]["bond_name"]
+vlan_id = MACHINE_INFO[TEST_HOST]["network"]["bv"]["vlan_id"]
+bv = bond_name + '.' + vlan_id
 
 dc_name = "vdsm_bva_dc"
 cluster_name = "vdsm_bva_cluster"

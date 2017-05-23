@@ -1,0 +1,5 @@
+BONDING_OPTS="mode=active-backup miimon=100"
+DEVICE="bond1"
+NM_CONTROLLED="no"
+ONBOOT="yes"
+TYPE="Bond"
