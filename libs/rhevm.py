@@ -899,23 +899,6 @@ class RhevmAction:
 
 
 if __name__ == '__main__':
-    '''
-    rhvm.create_direct_lun_disk(
-        disk_name="test_vm_Disk1, host_name="dguo_fc", lun_type="fcp", unit_id="36005076300810b3e0000000000000269")
-    jres = rhvm.list_disk(disk_name)
-    print jres['id']
-
-    #rhvm.attach_disk_to_vm(vm_name="test_vm", disk_name="test_vm_Disk1")
-    #print rhvm.list_vm_disk_attachments(vm_name="test_vm", disk_name="test_vm_Disk1)
-
-    rhvm = RhevmAction("rhvm41-vlan50-2.lab.eng.pek2.redhat.com")
-    rhvm.create_vm_direct_lun_disk(
-        disk_name="test_vm_Disk1",
-        vm_name="test_vm",
-        host_name="dguo_fc",
-        lun_type="fcp",
-        lun_id="36005076300810b3e0000000000000269")
-    '''
     rhvm = RhevmAction("rhvm41-vlan50-2.lab.eng.pek2.redhat.com")
     print rhvm.list_network(dc_name="vdsm_bva_dc", network_name="ovirtmgmt")
     rhvm.update_dc_network(dc_name="vdsm_bva_dc", network_name="ovirtmgmt", key="vlan", value="60")

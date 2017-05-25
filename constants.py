@@ -73,8 +73,8 @@ MACHINE_INFO = {
 
         # For test_fc
         "fc": {
-            "boot_lun": [],
-            "avl_luns": []
+            "boot_lun": ["36005076300810b3e0000000000000025"],
+            "avl_luns": ["36005076300810b3e0000000000000026", "36005076300810b3e0000000000000027"]
         }
     },
 
@@ -144,7 +144,7 @@ MACHINE_INFO = {
     },
 
     "dell-per730-35.lab.eng.pek2.redhat.com": {
-        "ip": "",
+        "ip": "10.73.131.65",
         "password": "redhat",
         "primary_nic": "em1",
 

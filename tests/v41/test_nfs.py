@@ -17,7 +17,7 @@ host_pass = MACHINE_INFO[TEST_HOST]['password']
 
 # Get NFS info
 nfs_ip = NFS_INFO[NFS_HOST_BE_USED]['ip']
-nfs_pass = NFS_INFO['password']
+nfs_pass = NFS_INFO[NFS_HOST_BE_USED]['password']
 nfs_data_path = NFS_INFO[NFS_HOST_BE_USED]['data_path'][0]
 
 dc_name = "vdsm_nfs_dc"

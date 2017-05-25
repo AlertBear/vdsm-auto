@@ -65,7 +65,7 @@ def test_18156(rhvm):
         res = run(cmd)
     if res.failed:
         assert 0, "%s is not configured or name incorrect" % bond
-    bond_ip = res.split()[2].split('/')[0]
+    bond_ip = res.split()[1].split('/')[0]
 
     # Add new host to above cluster
     print "Adding new host..."

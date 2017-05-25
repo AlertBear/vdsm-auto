@@ -1,6 +1,6 @@
 import os
 import tempfile
-from fabric.api import settings, local, run
+from fabric.api import settings, local, run, put
 from fabric.exceptions import NetworkError
 from constants import PROJECT_ROOT, NETWORK_SCRIPTS_DIR
 
@@ -11,10 +11,11 @@ vlan_dir = os.path.join(tpls_dir, "vlan")
 bv_dir = os.path.join(tpls_dir, "bv")
 
 
-def _update_kv(sfile, dfile, kv):
+def _update_kv(file, kv):
     for k, v in kv.items():
-        cmd = "sed -i 's/{key}=.*/{key}=\"{value}\"/' {sfile} > {dfile}".format(
-            key=k, value=v, sfile=sfile, dfile=dfile)
+        print k, v
+        cmd = "sed -i '/^{key}/c {key}=\"{value}\"' {file}".format(
+            key=k, value=v, file=file)
         local(cmd)
 
 
@@ -55,6 +56,14 @@ class NetworkAction:
                     return False, ret
         except NetworkError as e:
             return False, e
+
+    def _putfile(self, lfile, rfile):
+        with settings(
+                host_string='root@' + self.host_ip,
+                password=self.host_pass,
+                disable_known_hosts=True,
+                connection_attempts=60):
+            put(lfile, rfile)
 
     def _get_pub_gw(self):
         cmd = "ip route list|grep default"
@@ -99,7 +108,7 @@ class NetworkAction:
     def _bak_file(self, file):
         file_dir = os.path.dirname(file)
         file_name = os.path.basename(file)
-        bak_file = os.path.join(file_dir, file_name, '.bak')
+        bak_file = os.path.join(file_dir, file_name + '.bak')
         self._mvfile(file, bak_file)
 
     def setup_bond(self, bond_info):
@@ -125,18 +134,24 @@ class NetworkAction:
 
         # Update the templates to a tmp file
         s, bond_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (bond_scfg, bond_tcfg)
+        local(cmd)
         bond_cfg_kv = {"DEVICE": bond}
-        _update_kv(bond_scfg, bond_tcfg, bond_cfg_kv)
+        _update_kv(bond_tcfg, bond_cfg_kv)
 
         s, slave1_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (slave1_scfg, slave1_tcfg)
+        local(cmd)
         slave1_cfg_kv = {
             "DEVICE": slave1, "HWADDR": slave1_mac, "MASTER": bond}
-        _update_kv(slave1_scfg, slave1_tcfg, slave1_cfg_kv)
+        _update_kv(slave1_tcfg, slave1_cfg_kv)
 
         s, slave2_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (slave2_scfg, slave2_tcfg)
+        local(cmd)
         slave2_cfg_kv = {
-            "DEVICE": slave1, "HWADDR": slave2_mac, "MASTER": bond}
-        _update_kv(slave2_scfg, slave2_tcfg, slave2_cfg_kv)
+            "DEVICE": slave2, "HWADDR": slave2_mac, "MASTER": bond}
+        _update_kv(slave2_tcfg, slave2_cfg_kv)
 
         # Move the tmp files to /etc/sysconfig/network-scripts
         bond_dcfg = os.path.join(network_scripts_dir, "ifcfg-%s" % bond)
@@ -149,7 +164,7 @@ class NetworkAction:
         for tfile, dfile in files_dict.items():
             if os.path.isfile(dfile):
                 self._bak_file(dfile)
-            self._mvfile(tfile, dfile)
+            self._putfile(tfile, dfile)
 
         # Restart the service
         cmd = "service network restart"
@@ -174,12 +189,16 @@ class NetworkAction:
 
         # Update the templates to a tmp file
         s, nic_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (nic_scfg, nic_tcfg)
+        local(cmd)
         nic_cfg_kv = {"DEVICE": nic, "HWADDR": nic_mac}
-        _update_kv(nic_scfg, nic_tcfg, nic_cfg_kv)
+        _update_kv(nic_tcfg, nic_cfg_kv)
 
         s, vlan_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (vlan_scfg, vlan_tcfg)
+        local(cmd)
         vlan_cfg_kv = {"DEVICE": vlan}
-        _update_kv(vlan_scfg, vlan_tcfg, vlan_cfg_kv)
+        _update_kv(vlan_tcfg, vlan_cfg_kv)
 
         # Move the tmp file to /etc/sysconfig/network-scripts/
         nic_dcfg = os.path.join(network_scripts_dir, "ifcfg-%s" % nic)
@@ -189,7 +208,7 @@ class NetworkAction:
         for tfile, dfile in files_dict.items():
             if os.path.isfile(dfile):
                 self._bak_file(dfile)
-            self._mvfile(tfile, dfile)
+            self._putfile(tfile, dfile)
 
         # Add a gateway to avoid the disconnection by restart the network
         pub_gw = self._get_pub_gw()
@@ -231,22 +250,30 @@ class NetworkAction:
 
         # Update the templates to a tmp file
         s, bond_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (bond_scfg, bond_tcfg)
+        local(cmd)
         bond_cfg_kv = {"DEVICE": bond}
-        _update_kv(bond_scfg, bond_tcfg, bond_cfg_kv)
+        _update_kv(bond_tcfg, bond_cfg_kv)
 
         s, slave1_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (slave1_scfg, slave1_tcfg)
+        local(cmd)
         slave1_cfg_kv = {
             "DEVICE": slave1, "HWADDR": slave1_mac, "MASTER": bond}
-        _update_kv(slave1_scfg, slave1_tcfg, slave1_cfg_kv)
+        _update_kv(slave1_tcfg, slave1_cfg_kv)
 
         s, slave2_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (slave2_scfg, slave2_tcfg)
+        local(cmd)
         slave2_cfg_kv = {
             "DEVICE": slave1, "HWADDR": slave2_mac, "MASTER": bond}
-        _update_kv(slave2_scfg, slave2_tcfg, slave2_cfg_kv)
+        _update_kv(slave2_tcfg, slave2_cfg_kv)
 
         s, vlan_tcfg = tempfile.mkstemp()
+        cmd = "cat %s > %s" % (vlan_scfg, vlan_tcfg)
+        local(cmd)
         vlan_cfg_kv = {"DEVICE": vlan}
-        _update_kv(vlan_scfg, vlan_tcfg, vlan_cfg_kv)
+        _update_kv(vlan_tcfg, vlan_cfg_kv)
 
         # Move the tmp file to /etc/sysconfig/network-scripts/
         bond_dcfg = os.path.join(network_scripts_dir, "ifcfg-%s" % bond)
@@ -261,7 +288,7 @@ class NetworkAction:
         for tfile, dfile in files_dict.items():
             if os.path.isfile(dfile):
                 self._bak_file(dfile)
-            self._mvfile(tfile, dfile)
+            self._putfile(tfile, dfile)
 
         # Add a gateway to avoid the disconnection by restart the network
         pub_gw = self._get_pub_gw()

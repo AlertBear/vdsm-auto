@@ -1,4 +1,5 @@
 import re
+import time
 import traceback
 import functools
 import os
@@ -77,3 +78,37 @@ def clear_fc_scsi_lun(lun_id):
     if vg:
         cmd = "dmsetup remove /dev/%s/*" % vg
         run(cmd)
+
+
+def wait_host_up(rhvm, host_name):
+    # Wait host is up
+    i = 0
+    host_status = "unknown"
+    while True:
+        if i > 60:
+            return False, host_status
+        host_status = rhvm.list_host(host_name)['status']
+        print "HOST: %s" % host_status
+        if host_status == 'up':
+            return True, host_status
+        elif host_status == 'install_failed':
+            return False, host_status
+        elif host_status == 'non_operational':
+            return False, host_status
+        time.sleep(10)
+        i += 1
+
+
+def wait_vm_up(rhvm, vm_name):
+    # Wait VM is up
+    i = 0
+    vm_status = "unknown"
+    while True:
+        if i > 30:
+            return False, vm_status
+        vm_status = rhvm.list_vm(vm_name)['status']
+        print "VM: %s" % vm_status
+        if vm_status == 'up':
+            return True, vm_status
+        time.sleep(10)
+        i += 1

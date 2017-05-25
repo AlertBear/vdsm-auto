@@ -19,7 +19,8 @@ host_pass = MACHINE_INFO[TEST_HOST]['password']
 fc_flag = MACHINE_INFO[TEST_HOST].get('fc', None)
 if not fc_flag:
     raise RuntimeError("%s not support for test_fc" % TEST_HOST)
-available_luns = MACHINE_INFO[TEST_HOST]['avl_luns']
+
+available_luns = MACHINE_INFO[TEST_HOST]['fc']['avl_luns']
 lun_as_sd = available_luns[0]
 lun_as_disk = available_luns[1]
 
@@ -73,19 +74,9 @@ def test_set(rhvm):
         assert 0, "Failed to add new host to cluster"
     time.sleep(30)
 
-    # Wait host is up
-    i = 0
-    while True:
-        if i > 60:
-            assert 0, "Failed to add host %s to %s" % (host_name, dc_name)
-        host_status = rhvm.list_host(host_name)['status']
-        print "HOST: %s" % host_status
-        if host_status == 'up':
-            break
-        elif host_status == 'install_failed':
-            assert 0, "Failed to add host %s to %s" % (host_name, dc_name)
-        time.sleep(10)
-        i += 1
+    ret, host_status = wait_host_up(rhvm, host_name)
+    if not ret:
+        assert 0, "%s status: %s, Failed to add host" % (host_name, host_status)
 
 
 def test_18116(rhvm):
@@ -164,17 +155,9 @@ def test_18131(rhvm):
         assert 0, "Failed to start up the new VM"
     time.sleep(60)
 
-    # Wait VM is up
-    i = 0
-    while True:
-        if i > 30:
-            assert 0, "Failed to start up the new VM"
-        vm_status = rhvm.list_vm(vm_name)['status']
-        print "VM: %s" % vm_status
-        if vm_status == 'up':
-            break
-        time.sleep(10)
-        i += 1
+    ret, vm_status = wait_vm_up(rhvm, vm_name)
+    if not ret:
+        assert 0, "%s status: %s, Failed to startup" % (vm_name, vm_status)
 
 
 def test_unset(rhvm):

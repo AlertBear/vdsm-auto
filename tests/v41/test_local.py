@@ -7,6 +7,7 @@ from libs.util import *
 from conf import *
 from constants import *
 
+
 # Get rhvm fqdn info
 rhvm_fqdn = RHVM_FQDN
 rhvm_pass = RHVM_INFO[RHVM_FQDN]['password']
@@ -18,7 +19,7 @@ host_pass = MACHINE_INFO[TEST_HOST]['password']
 local_flag = MACHINE_INFO[TEST_HOST].get('local', None)
 if not local_flag:
     raise RuntimeError("%s not support for test_local" % TEST_HOST)
-local_data_path = MACHINE_INFO[TEST_HOST]['data_path']
+local_data_path = MACHINE_INFO[TEST_HOST]['local']['data_path']
 
 dc_name = "vdsm_local_dc"
 cluster_name = "vdsm_local_cluster"
