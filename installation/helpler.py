@@ -39,4 +39,12 @@ def _get_machine_ks_cases_map(machine, *scens):
 
 
 def get_job_queue(machine, *scens):
+    """ example
+    :param machine: "ibm-x3650m5-04.lab.eng.pek2.redhat.com"
+    :param scens: "bv_anaconda"
+    :return: {"ibm-x3650m5-04.lab.eng.pek2.redhat.com": {
+                "bv_tpl.ks": ["tests/v41/test_bv_anaconda.py"]
+                }
+             }
+    """
     return _get_machine_ks_cases_map(machine, *scens)

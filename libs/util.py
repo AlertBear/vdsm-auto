@@ -1,24 +1,56 @@
 import re
 import time
-import traceback
-import functools
-import os
+import scen
 from fabric.api import run, settings
+from constants import MACHINE_INFO
 
 
-def exception(text):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kw):
-            try:
-                func(*args, **kw)
-            except Exception as e:
-                print e
-                print traceback.print_exc()
-                print text
-            return func(*args, **kw)
-        return wrapper
-    return decorator
+def _exclude_scen(s, machine):
+    machine_info = MACHINE_INFO[machine]
+    network_s = [
+        "bond_anaconda",
+        "vlan_anaconda",
+        "bv_anaconda",
+        "bond_ifcfg",
+        "vlan_ifcfg",
+        "bv_ifcfg"]
+
+    if s not in machine_info.keys():
+        if s not in network_s:
+            return True
+        else:
+            if s.split('_')[0] not in machine_info['network'].keys():
+                return True
+
+    return False
+
+
+def _get_machine_ks_cases_map(machine, *scens):
+    if machine not in MACHINE_INFO.keys():
+        raise RuntimeError("%s not in record, see detail in constants.py" % machine)
+
+    machine_ks_cases_map = {}
+
+    for s in scens:
+        if _exclude_scen(s, machine):
+            continue
+        sa = getattr(scen, s)
+        ks_cases_map = {sa['KSFILE']: sa['CASES']}
+        machine_ks_cases_map.update(ks_cases_map)
+
+    return machine_ks_cases_map
+
+
+def get_job_queue(machine, *scens):
+    """ example
+    :param machine: "ibm-x3650m5-04.lab.eng.pek2.redhat.com"
+    :param scens: "bv_anaconda"
+    :return: {"ibm-x3650m5-04.lab.eng.pek2.redhat.com": {
+                "bv_tpl.ks": ["tests/v41/test_bv_anaconda.py"]
+                }
+             }
+    """
+    return _get_machine_ks_cases_map(machine, *scens)
 
 
 def get_cpu_type(host_ip, host_pass):

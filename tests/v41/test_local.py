@@ -159,6 +159,9 @@ def test_18114(rhvm):
             cmd = "rm -rf %s/*" % local_data_path
             run(cmd)
 
+        cmd = "chmod 777 %s" % local_data_path
+        run(cmd)
+
     # Create local storage domain above local storage dir
     print "Creating local storage domain..."
     storage_domain_name = "vdsm_local_sd"

@@ -3,7 +3,7 @@ import os
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 NETWORK_SCRIPTS_DIR = "/etc/sysconfig/network-scripts"
-
+BUILD_SERVER_URL = "http://10.66.10.22:8090"
 
 #
 # RHVM FQDN
