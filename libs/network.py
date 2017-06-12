@@ -237,7 +237,7 @@ class NetworkAction:
         bond = bv_info["bond_name"]
         slave1 = bv_info["slaves"][0]
         slave2 = bv_info["slaves"][1]
-        vlan_id = bv_info["id"]
+        vlan_id = bv_info["vlan_id"]
         vlan = bond + '.' + vlan_id
 
         # Get the mac address of slaves

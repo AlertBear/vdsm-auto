@@ -68,7 +68,7 @@ def test_bvi(rhvm):
     nk = NetworkAction()
     nk.host_ip = host_ip
     nk.host_pass = host_pass
-    nk.setup_vlan(bv_info)
+    nk.setup_bv(bv_info)
 
     # Check bv is configured
     with settings(warn_ony=True):
