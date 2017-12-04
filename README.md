@@ -1,5 +1,5 @@
 
-## How To Run  
+## How To Run
 
 1. Clone source codes to local directory on above "TEST RUN" machine
 ```bash
